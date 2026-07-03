@@ -1,0 +1,1 @@
+# L1 洞察索引 — 极简导航（≤25 行）# 格式：能力关键词 → 具体位置# Skill 核心结晶后自动添加条目，无需手动维护。skills/HN_daily_digest ← 抓HN头条/HN摘要skills/chrome_cdp_bypass ← Chrome反爬/CDP连接/系统Chrome
