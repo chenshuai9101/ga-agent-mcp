@@ -34,10 +34,15 @@ MCP_SERVER = SCRIPT_DIR / "mcp_ga_server.py"
 def _resolve_python() -> str:
     if VENV_PYTHON.exists():
         return str(VENV_PYTHON)
-    for p in ["/opt/homebrew/bin/python3.12", "/opt/homebrew/bin/python3.11", "python3"]:
+    # 优先当前解释器，再回退到常见名称（不再硬编码 homebrew 路径）
+    candidates = [sys.executable, "python3.13", "python3.12", "python3.11",
+                  "python3.10", "python3", "python"]
+    for p in candidates:
+        if not p:
+            continue
         try:
             r = subprocess.run([p, "--version"], capture_output=True, text=True, timeout=5)
-            if r.returncode == 0 and "3." in r.stdout:
+            if r.returncode == 0 and "3." in (r.stdout + r.stderr):
                 return p
         except Exception:
             continue
@@ -164,20 +169,38 @@ def _quick_crystal(task_name: str, trigger: str, steps: str,
     if code:
         content += f"## Code Template\n```python\n{code}\n```\n"
     path.write_text(content, encoding="utf-8")
-    
-    # Update L1 index
+
+    # Update L1 index（与 mcp_ga_server.update_insight_index 保持一致：用 "\n" 连接）
     index_path = SCRIPT_DIR / "memory" / "L1_insight_index.txt"
     entry = f"skills/{safe_name} ← {trigger}"
+    default_header = [
+        "# L1 洞察索引 — 极简导航（≤25 行）",
+        "# 格式：能力关键词 → 具体位置",
+    ]
     if index_path.exists():
         lines = index_path.read_text(encoding="utf-8").split("\n")
-        header = [l for l in lines if l.startswith("#") or not l.strip()]
+        header = [l for l in lines if l.startswith("#")] or default_header
         entries = [l for l in lines if not l.startswith("#") and l.strip()]
-        if entry not in entries:
-            entries.append(entry)
-        if len(entries) > 25:
-            entries = entries[-25:]
-        index_path.write_text("".join(header + [""] + entries) + "\n", encoding="utf-8")
-    
+    else:
+        header, entries = default_header, []
+    if entry not in entries:
+        entries.append(entry)
+    if len(entries) > 25:
+        entries = entries[-25:]
+    index_path.write_text("\n".join(header + [""] + entries) + "\n", encoding="utf-8")
+
+    # L4 归档：与 server 端 crystallize 闭环一致，留下会话痕迹
+    arch_dir = SCRIPT_DIR / "memory" / "L4_archive"
+    arch_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    (arch_dir / f"{stamp}_{safe_name}.md").write_text(
+        f"# Session: {task_name}\n"
+        f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
+        f"## Summary\ncrystallized skill 「{trigger}」\n\n"
+        f"## Key Steps\n{steps}\n",
+        encoding="utf-8",
+    )
+
     return {"status": "success", "msg": f"✅ Skill '{task_name}' 已结晶！下次说「{trigger}」直接复用", "path": str(path)}
 
 

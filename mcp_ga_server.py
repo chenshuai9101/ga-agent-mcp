@@ -100,19 +100,20 @@ def update_insight_index(changes: str):
     """Update L1 insight index with new pointers."""
     current = read_memory_file("L1_insight_index.txt")
     lines = current.split("\n")
-    # Keep header, append new entries
-    header = [l for l in lines if l.startswith("#") or not l.strip()]
+    # Keep only comment lines as header (blank lines are re-inserted below,
+    # so they don't accumulate over repeated calls)
+    header = [l for l in lines if l.startswith("#")]
     entries = [l for l in lines if not l.startswith("#") and l.strip()]
-    
+
     for change in changes.strip().split("\n"):
         if change and change not in entries:
             entries.append(change)
-    
-    # Enforce ≤ 30 lines
+
+    # Enforce ≤ 25 lines
     if len(entries) > 25:
         entries = entries[-25:]
-    
-    result = "\n".join(header + [""] + entries)
+
+    result = "\n".join(header + [""] + entries) + "\n"
     write_memory_file("L1_insight_index.txt", result)
 
 
@@ -167,10 +168,13 @@ def crystallize_skill(task_name: str, trigger_phrase: str, key_steps: str,
         content += f"## Code Template\n```python\n{code_template}\n```\n"
     
     path.write_text(content, encoding="utf-8")
-    
+
     # Update L1 index
     update_insight_index(f"skills/{safe_name} ← {trigger_phrase}")
-    
+
+    # L4 归档：结晶即留下会话痕迹，保证记忆闭环
+    log_session(task_name, f"crystallized skill 「{trigger_phrase}」", key_steps)
+
     return f"✅ Skill '{task_name}' crystallized! Next time user says '【{trigger_phrase}】', auto-load this skill."
 
 
