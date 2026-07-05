@@ -66,6 +66,37 @@ if [ ! -f "$DIR/memory/L2_global_facts.txt" ]; then
 EOF
 fi
 
+# 4. 注册"肌肉记忆反射" hook 到 Claude Code 全局配置（幂等，带备份）
+echo "→ 注册肌肉记忆反射 hook (Claude Code UserPromptSubmit)..."
+"$PYTHON" - "$DIR" << 'PYEOF'
+import json, os, shutil, sys
+dir_ = sys.argv[1]
+settings = os.path.expanduser("~/.claude/settings.json")
+os.makedirs(os.path.dirname(settings), exist_ok=True)
+if os.path.exists(settings):
+    shutil.copy(settings, settings + ".bak")   # 备份
+    try:
+        data = json.load(open(settings, encoding="utf-8"))
+    except Exception:
+        data = {}
+else:
+    data = {}
+cmd = "python3 %s/hooks/skill_reflex.py" % dir_
+ups = data.setdefault("hooks", {}).setdefault("UserPromptSubmit", [])
+exists = any(
+    h.get("type") == "command" and "skill_reflex.py" in h.get("command", "")
+    for entry in ups for h in entry.get("hooks", [])
+)
+if exists:
+    print("  已存在，跳过（幂等）")
+else:
+    ups.append({"hooks": [{"type": "command", "command": cmd}]})
+    json.dump(data, open(settings, "w", encoding="utf-8"),
+              ensure_ascii=False, indent=2)
+    print("  ✔ 已写入 %s（备份 .bak）" % settings)
+print("  💡 下次新开 Claude Code 会话即自动生效")
+PYEOF
+
 echo ""
 echo "✅ 安装完成！"
 echo ""
@@ -85,5 +116,9 @@ echo '     args = ["'"${DIR}"'/mcp_ga_server.py"]'
 echo ""
 echo "  4. 查看技能库状态："
 echo '     python "'"$DIR"'/crystallizer/crystallize.py" --stats'
+echo ""
+echo "  🧠→⚡ 肌肉记忆反射：已注册为 Claude Code UserPromptSubmit hook，"
+echo "     每次提问自动召回匹配的 L3 skill。停用：删掉 ~/.claude/settings.json"
+echo "     里 hooks.UserPromptSubmit 中含 skill_reflex.py 的那条。"
 echo ""
 echo "🎯 然后说人话就能操控了！"

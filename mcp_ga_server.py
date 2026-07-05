@@ -75,6 +75,10 @@ MEMORY_DIR = SCRIPT_DIR / "memory"
 L3_SKILLS_DIR = MEMORY_DIR / "L3_skills"
 L4_ARCHIVE_DIR = MEMORY_DIR / "L4_archive"
 
+# 肌肉记忆的单一匹配真相（与 hooks/skill_reflex.py 共用）
+sys.path.insert(0, str(SCRIPT_DIR / "crystallizer"))
+from skill_matcher import find_skills  # noqa: E402
+
 
 def ensure_memory_dirs():
     """Ensure all memory directories exist."""
@@ -180,30 +184,16 @@ def crystallize_skill(task_name: str, trigger_phrase: str, key_steps: str,
 
 def find_skill_for_query(query: str) -> Optional[tuple[str, str]]:
     """Fuzzy-match a user query against crystallized skills.
-    Returns (skill_name, content) if match found."""
-    query_lower = query.lower()
-    candidates = []
-    
-    for f in sorted(L3_SKILLS_DIR.glob("*.md")):
-        content = f.read_text(encoding="utf-8")
-        name = f.stem
-        
-        # Extract trigger phrase
-        m = re.search(r"Trigger.*?[：:]\s*「(.+?)」", content)
-        trigger = m.group(1) if m else name
-        
-        # Simple keyword matching
-        trigger_words = set(re.findall(r"\w+", trigger.lower()))
-        query_words = set(re.findall(r"\w+", query_lower))
-        overlap = len(trigger_words & query_words)
-        
-        if overlap > 0 or trigger.lower() in query_lower:
-            candidates.append((overlap, name, content))
-    
-    if candidates:
-        candidates.sort(key=lambda x: -x[0])
-        return candidates[0][1], candidates[0][2]
-    return None
+    Returns (skill_name, content) of the best match, or None.
+
+    薄封装：真正的匹配逻辑在 crystallizer/skill_matcher.py（与肌肉记忆 hook
+    共用同一真相；修正了旧版 \\w+ 分词对中文失效的问题）。
+    """
+    matches = find_skills(query, l3_dir=str(L3_SKILLS_DIR))
+    if not matches:
+        return None
+    best = matches[0]
+    return best["name"], best["content"]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -821,6 +811,20 @@ async def list_tools() -> list[Tool]:
                 },
             },
         ),
+        _tool(
+            "skill_find",
+            "Fuzzy-match a natural-language query against crystallized L3 skills "
+            "and return the matching reusable SOP(s). This powers the 'muscle memory' "
+            "recall — call it at the start of a task to check whether a proven "
+            "procedure already exists before reasoning from scratch.",
+            {
+                "query": {
+                    "type": "string",
+                    "description": "User request / task description to match against skill triggers",
+                },
+            },
+            required=["query"],
+        ),
     ]
 
 
@@ -1014,7 +1018,21 @@ async def _dispatch_tool(name: str, args: dict) -> Any:
             ]
         
         return result
-    
+
+    elif name == "skill_find":
+        query = args.get("query", "")
+        matches = find_skills(query, l3_dir=str(L3_SKILLS_DIR))
+        return {
+            "status": "success",
+            "query": query,
+            "match_count": len(matches),
+            "skills": [
+                {"name": m["name"], "hits": m["hits"],
+                 "score": m["score"], "sop": m["content"]}
+                for m in matches
+            ],
+        }
+
     return {"status": "error", "msg": f"Unknown tool: {name}"}
 
 

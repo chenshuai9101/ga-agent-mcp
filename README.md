@@ -83,6 +83,42 @@ L4 会话归档   → 历史任务回顾
 
 越用，L3 技能库越大，Agent 越懂你。
 
+## 🧠→⚡ 肌肉记忆反射（自动召回）
+
+结晶只是"记住"，**反射**才让它"不用想就会用"。本项目把 L3 技能接进 Claude Code 的
+`UserPromptSubmit` hook：**你每发一句话，都会先被拿去模糊匹配已结晶的 Skill，命中就把
+对应 SOP 自动注入上下文**——无需 Claude 主动检索，也无需等下个会话。
+
+```
+你说 → hook 拦截 → 匹配 L3_skills → 命中就注入 SOP → Claude 直接照做
+```
+
+**匹配打分规则**（对中文友好，修正了旧版 \w+ 分词失效的问题）：
+
+| 命中方式 | 得分 |
+|---|---|
+| 触发词整词出现在你的话里 | 3 |
+| ASCII 词元子串命中（如 `hn`/`cdp`/`chrome`） | 2 |
+| 中文二元组（bigram）重叠，每个 | 1 |
+
+总分 **≥ 2** 才注入，滤掉噪音；并列命中最多注入 2 条。
+
+**文件位置：**
+- `crystallizer/skill_matcher.py` — ★ 匹配核心（hook 与 MCP `skill_find` 工具共用的单一真相）
+- `hooks/skill_reflex.py` — UserPromptSubmit hook 的 fail-safe 外壳（任何异常都静默放行，绝不阻断提问）
+
+**怎么装：** `./install.sh` 会自动把该 hook 幂等写入 `~/.claude/settings.json`（带 `.bak` 备份），**下次新开 Claude Code 会话即生效**。
+
+**提高命中率：** 结晶时 `memory_crystallize` 的 `trigger_phrase` 多写几个同义关键词、用 `/` 分隔，例如 `「Chrome反爬/CDP连接/系统Chrome」`。
+
+**手动验证：**
+```bash
+python3 crystallizer/skill_matcher.py          # 内置 self-test
+echo '{"prompt":"抓HN头条"}' | python3 hooks/skill_reflex.py
+```
+
+**停用：** 删掉 `~/.claude/settings.json` 里 `hooks.UserPromptSubmit` 中含 `skill_reflex.py` 的那条即可。
+
 ## 🛠️ 文件说明
 
 ```
@@ -92,7 +128,11 @@ ga-agent/
 ├── browser_agent.py         ← 一站式浏览器工具（多步连续操作）
 ├── open_chrome.sh           ← 启动系统 Chrome + CDP 调试端口
 ├── skills/ga-agent/SKILL.md ← ★ 操控指南（教我怎么做你的管家）
-├── crystallizer/crystallize.py ← 技能结晶器 CLI
+├── crystallizer/
+│   ├── crystallize.py       ← 技能结晶器 CLI
+│   └── skill_matcher.py     ← ★ 肌肉记忆匹配核心（hook 与 skill_find 共用）
+├── hooks/
+│   └── skill_reflex.py      ← ★ UserPromptSubmit 反射 hook（自动召回 L3 skill）
 ├── memory/
 │   ├── L0_meta_rules.txt    ← 6 条不可违抗的元规则
 │   ├── L1_insight_index.txt ← 洞察导航（≤25 行）
