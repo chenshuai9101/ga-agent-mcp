@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyflakes  # syntax + logical error check
+
+      - name: Check syntax (pyflakes)
+        run: |
+          pyflakes mcp_ga_server.py mcp_client.py browser_agent.py crystallizer/*.py hooks/*.py
+
+      - name: Check MCP server imports
+        run: |
+          python -c "import mcp_ga_server; print('mcp_ga_server OK ✅')"
+          python -c "import mcp_client; print('mcp_client OK ✅')"
+
+      - name: Check crystallizer imports
+        run: |
+          python -c "
+import sys; sys.path.insert(0, '.')
+from crystallizer.crystallize import main as c_main; print('crystallizer OK ✅')
+from crystallizer.skill_matcher import match_score as ms; print('skill_matcher OK ✅')
+"
+
+      - name: Check skill_reflex hook syntax
+        run: |
+          python -c "
+import ast
+with open('hooks/skill_reflex.py') as f:
+    ast.parse(f.read())
+print('skill_reflex.py syntax OK ✅')
+"
+
+      - name: Memory file integrity
+        run: |
+          for f in memory/L0_meta_rules.txt memory/L1_insight_index.txt memory/L2_global_facts.txt; do
+            [ -s "$f" ] && echo "$f ✅" || echo "⚠️ $f is empty!"
+          done
