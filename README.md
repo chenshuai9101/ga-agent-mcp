@@ -3,6 +3,16 @@
 > 受 GenericAgent (13K⭐) 启发，提炼核心思想：
 > **最小工具集 + 分层记忆 + 技能结晶 = 越用越强的电脑管家**
 
+<div align="center">
+
+**🏷️ Topics:** `mcp` `mcp-server` `agent` `memory` `skills` `computer-use` `self-evolving` `browser-automation` `claude` `ai-agent` `generic-agent` `openclaw`
+
+[![GitHub Stars](https://img.shields.io/github/stars/chenshuai9101/ga-agent-mcp?style=social)](https://github.com/chenshuai9101/ga-agent-mcp)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-blue)](https://modelcontextprotocol.io)
+
+</div>
+
 ## ✨ 一句话
 
 **你说人话，它干活。干完自动记住，下次不用再教。**
@@ -165,10 +175,52 @@ MCP server 会自动检测 localhost:9222 并连上系统 Chrome，
 
 ## ☕ 支持项目
 
-如果这个项目对你有帮助，欢迎请喝杯咖啡 ☕
+如果这个项目对你有帮助，欢迎支持 ☕
 
-<img src="assets/donate.jpg" width="200" alt="捐赠二维码">
+| 方式 | 链接/二维码 |
+|------|------------|
+| ⭐ GitHub Star | 点右上角 Star 就是最大的支持 |
+| 💬 提 Issue/PR | 一起让项目更好 |
+| ☕ 请喝咖啡 | <img src="assets/donate.jpg" width="160" alt="捐赠二维码"> |
+| 🏗️ 企业定制 | 联系作者：chenshuai9101@gmail.com |
+
+## 🚀 云端部署（30 秒上线）
+
+### 方式一：MCPize 一键部署
+
+> [MCPize](https://mcpize.com) 提供托管部署，30 秒上线，即开即用。
+> 支持 Claude Desktop、Cursor、VS Code、Claude Code 集成。
+> *（上架中，即将可用）*
+
+### 方式二：Docker 自部署
+
+```bash
+docker run -d \
+  --name ga-agent-mcp \
+  -p 8080:8080 \
+  -v $(pwd)/memory:/app/memory \
+  chenshuai9101/ga-agent-mcp
+```
+
+### 方式三：源码部署
+
+```bash
+git clone https://github.com/chenshuai9101/ga-agent-mcp.git
+cd ga-agent-mcp
+chmod +x install.sh && ./install.sh
+```
+
+## 📖 相关文章
+
+- [《我开源了一个会自学的 MCP Server——越用越强的 AI Agent》](link)
+- [《MCP 技能结晶：让 AI Agent 拥有肌肉记忆》](link)
+- [《5层记忆系统：Agent 如何从零到一地记住你》](link)
+
+## 加入社区
+
+- 💬 [GitHub Discussions](https://github.com/chenshuai9101/ga-agent-mcp/discussions) — 反馈 & 讨论
+- 🐛 [提 Issue](https://github.com/chenshuai9101/ga-agent-mcp/issues) — 报告 Bug & 建议新功能
 
 ## 许可证
 
-MIT
+MIT © chenshuai9101
