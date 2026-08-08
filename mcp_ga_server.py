@@ -25,23 +25,18 @@ import json
 import os
 import sys
 import tempfile
-import time
-import uuid
 import re
-import subprocess
-import shutil
 import base64
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
-from io import BytesIO
 
 # ─── MCP SDK ───────────────────────────────────────────────────────────────────
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import (
-    Tool, TextContent, ImageContent, EmbeddedResource,
-    CallToolResult, ListToolsResult,
+    Tool, TextContent, ImageContent,
+    CallToolResult,
 )
 
 # ─── Optional imports (graceful fallback) ──────────────────────────────────────
@@ -56,12 +51,6 @@ try:
     HAS_BS4 = True
 except ImportError:
     HAS_BS4 = False
-
-try:
-    from PIL import Image
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
 
 # Playwright is loaded lazily to speed up startup when not needed
 

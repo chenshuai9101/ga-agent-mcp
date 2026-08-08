@@ -14,13 +14,9 @@
     - 支持"查询→匹配 Skill"的语义搜索
 """
 
-import json
-import os
 import re
-import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 # 默认路径
 BASE_DIR = Path(__file__).parent.parent
